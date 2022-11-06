@@ -2,6 +2,7 @@
 */__pycache__
 __pycache__/*
 weights/*
+checkpoints/*
 __pycache__
 *.log
 *.csv
