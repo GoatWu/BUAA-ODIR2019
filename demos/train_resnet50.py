@@ -38,27 +38,26 @@ def main(img_root, annotation_file, args):
     }
     dataset = MyDataSet(train_img_list, train_img_classes)
     trainset, valiset = func.generate_train_valid_set(dataset, split_ratio=0.4)
-    trainset, valiset = trainset.dataset, valiset.dataset
     train_sampler = torch.utils.data.SubsetRandomSampler(trainset.indices)
     valid_sampler = torch.utils.data.SubsetRandomSampler(valiset.indices)
-    trainset.transform = data_transform["train"]
-    valiset.transform = data_transform["val"]
 
     batch_size = args.batch_size
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
+    dataset.transform = data_transform["train"]
     train_loader = torch.utils.data.DataLoader(dataset,
                                                batch_size=batch_size,
                                                sampler=train_sampler,
                                                pin_memory=True,
                                                num_workers=nw,
                                                collate_fn=dataset.collate_fn)
+    dataset.transform = data_transform["val"]
     val_loader = torch.utils.data.DataLoader(dataset,
                                              batch_size=batch_size,
                                              sampler=valid_sampler,
                                              pin_memory=True,
                                              num_workers=nw,
-                                             collate_fn=valiset.collate_fn)
+                                             collate_fn=dataset.collate_fn)
     model = ResNet(Bottleneck, [3, 4, 6, 3]).to(device)
     weights_dict = torch.load('../weights/resnet50.pth', map_location='cpu')
     missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
@@ -71,8 +70,18 @@ def main(img_root, annotation_file, args):
             # 除最后的全连接层外，其他权重全部冻结
             if "fc" not in name:
                 para.requires_grad_(False)
-    pg = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(pg, lr=args.lr, momentum=0.9, weight_decay=1E-4, nesterov=True)
+        pg = [p for p in model.parameters() if p.requires_grad]
+        optimizer = torch.optim.SGD(pg, lr=args.lr, momentum=0.9, weight_decay=1E-4, nesterov=True)
+    else:
+        pg_backbone = [{'params': params, 'lr': args.lr_backbone}
+                       for name, params in model.named_parameters()
+                       if 'fc' not in name and params.requires_grad]
+        pg_classifier = [{'params': params, 'lr': args.lr}
+                         for name, params in model.named_parameters()
+                         if 'fc' in name and params.requires_grad]
+        pg = pg_backbone + pg_classifier
+        optimizer = torch.optim.SGD(pg, momentum=0.9, weight_decay=1E-4, nesterov=True)
+
     lf = lambda x: ((1 + math.cos(x * math.pi / args.epochs)) / 2) * (1 - args.lrf) + args.lrf  # cosine
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     for epoch in range(args.epochs):
@@ -90,7 +99,7 @@ def main(img_root, annotation_file, args):
 
 
 if __name__ == '__main__':
-    img_root = '/mnt/h/MyDataBase/ORID-5K/ODIR-5K_Training_Dataset'
+    img_root = '/mnt/d/MyDataBase/ODIR-5K/ODIR-5K_Training_Dataset'
     annotation_file = '../data_result.csv'
 
     import argparse
@@ -101,10 +110,12 @@ if __name__ == '__main__':
                         help='batch size when training.')
     parser.add_argument('--epochs', default=30, type=int, metavar='E',
                         help='Training epochs.')
-    parser.add_argument('--lr', default=0.001, type=float,
-                        help='Learning Rate.')
+    parser.add_argument('--lr', default=0.01, type=float,
+                        help='Learning Rate for classifier.')
+    parser.add_argument('--lr_backbone', default=0.001, type=float,
+                        help='Learning Rate for backbone.')
     parser.add_argument('--lrf', default=0.1, type=float)
-    parser.add_argument('--freeze_layers', default=True, type=bool,
+    parser.add_argument('--freeze_layers', default=False, type=bool,
                         help='Frozen weights except classifier.')
 
     args = parser.parse_args()

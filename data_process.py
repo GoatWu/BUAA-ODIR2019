@@ -32,6 +32,6 @@ if __name__ == '__main__':
     # create logger
     logging.config.fileConfig('logging.conf')
     logger = logging.getLogger('Main')
-    file_dir = '/mnt/h/MyDataBase/ORID-5K/ODIR-5K_Training_Annotations(Updated)_V2.xlsx'
+    file_dir = '/mnt/d/MyDataBase/ODIR-5K/ODIR-5K_Training_Annotations(Updated)_V2.xlsx'
     generate_file = './data_result.csv'
     main(file_dir, generate_file)
