@@ -39,21 +39,23 @@ def main(img_root, annotation_file, args):
     dataset = MyDataSet(train_img_list, train_img_classes)
     trainset, valiset = func.generate_train_valid_set(dataset, split_ratio=0.4)
     trainset, valiset = trainset.dataset, valiset.dataset
+    train_sampler = torch.utils.data.SubsetRandomSampler(trainset.indices)
+    valid_sampler = torch.utils.data.SubsetRandomSampler(valiset.indices)
     trainset.transform = data_transform["train"]
     valiset.transform = data_transform["val"]
 
     batch_size = args.batch_size
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
-    train_loader = torch.utils.data.DataLoader(trainset,
+    train_loader = torch.utils.data.DataLoader(dataset,
                                                batch_size=batch_size,
-                                               shuffle=True,
+                                               sampler=train_sampler,
                                                pin_memory=True,
                                                num_workers=nw,
-                                               collate_fn=trainset.collate_fn)
-    val_loader = torch.utils.data.DataLoader(valiset,
+                                               collate_fn=dataset.collate_fn)
+    val_loader = torch.utils.data.DataLoader(dataset,
                                              batch_size=batch_size,
-                                             shuffle=False,
+                                             sampler=valid_sampler,
                                              pin_memory=True,
                                              num_workers=nw,
                                              collate_fn=valiset.collate_fn)

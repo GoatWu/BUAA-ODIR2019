@@ -6,3 +6,4 @@ checkpoints/*
 __pycache__
 *.log
 *.csv
+test.py
