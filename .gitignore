@@ -5,6 +5,7 @@ weights/*
 checkpoints/*
 __pycache__
 *.log
+log/
 *.csv
 test/*
 data/*

@@ -36,5 +36,5 @@ if __name__ == '__main__':
 # [tensor(0.1064), tensor(0.1568), tensor(0.2085)]
 #
 # train dataset
-# [tensor(0.0502), tensor(0.0796), tensor(0.1090)]
-# [tensor(0.1184), tensor(0.1700), tensor(0.2183)]
+# [0.0502, 0.0796, 0.1090]
+# [0.1184, 0.1700, 0.2183]

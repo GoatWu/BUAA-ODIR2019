@@ -21,16 +21,16 @@ def deal_a_image(img_path, output_path):
 
 
 if __name__ == '__main__':
-    # test_img_root = '/mnt/d/MyDataBase/ODIR-5K/ODIR-5K_Testing_Images'
-    # test_output_path = '../data/Test_Dataset'
-    # test_images = os.listdir(test_img_root)
-    # with tqdm(total=len(test_images)) as pbar:
-    #     for img in test_images:
-    #         img_path = os.path.join(test_img_root, img)
-    #         deal_a_image(img_path, test_output_path)
-    #         pbar.update(1)
+    test_img_root = '/mnt/h/MyDataBase/ODIR-5K/ODIR-5K_Testing_Images'
+    test_output_path = '../data/Test_Dataset'
+    test_images = os.listdir(test_img_root)
+    with tqdm(total=len(test_images)) as pbar:
+        for img in test_images:
+            img_path = os.path.join(test_img_root, img)
+            deal_a_image(img_path, test_output_path)
+            pbar.update(1)
 
-    train_img_root = '/mnt/d/MyDataBase/ODIR-5K/ODIR-5K_Training_Dataset'
+    train_img_root = '/mnt/h/MyDataBase/ODIR-5K/ODIR-5K_Training_Dataset'
     train_output_path = '../data/Train_Dataset'
     train_images = os.listdir(train_img_root)
     with tqdm(total=len(train_images)) as pbar:

@@ -25,27 +25,32 @@ def generate_train_valid_set(dataset, split_ratio):
     return trainset, validset
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, epochs, scaler):
     model.train()
-    loss_function = torch.nn.CrossEntropyLoss()
     mean_loss = torch.zeros(1).to(device)
     optimizer.zero_grad()
     data_loader = tqdm(data_loader, file=sys.stdout)
     for step, dt in enumerate(data_loader):
         images, labels = dt
         labels = labels.float().to(device)
-        pred = model(images.to(device))
-        loss = torch.tensor(0, dtype=torch.float).to(device)
-        for i in range(labels.shape[1]):
-            loss += F.binary_cross_entropy_with_logits(pred[i, :].squeeze(), labels[:, i])
-        loss.backward()
-        mean_loss = (mean_loss * step + loss.detach()) / (step + 1)  # update mean losses
-        data_loader.desc = "[epoch {}] mean loss {}".format(epoch, round(mean_loss.item(), 3))
+        with torch.cuda.amp.autocast(enabled=scaler is not None):
+            pred = model(images.to(device))
+            loss = torch.tensor(0, dtype=torch.float).to(device)
+            for i in range(labels.shape[1]):
+                loss += F.binary_cross_entropy_with_logits(pred[i, :].squeeze(), labels[:, i])
+        mean_loss = (mean_loss * step + loss.item()) / (step + 1)  # update mean losses
+        data_loader.desc = "[epoch {}/{}] mean loss {}".format(str(epoch+1).rjust(2, ' '), epochs, round(mean_loss.item(), 3))
         if not torch.isfinite(loss):
             print('WARNING: non-finite loss, ending training ', loss)
             sys.exit(1)
-        optimizer.step()
         optimizer.zero_grad()
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
     return mean_loss.item()
 
 
